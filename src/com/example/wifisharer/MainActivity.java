@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.util.Log;
@@ -36,7 +37,7 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		new CreateServer(this).execute();
-		SocketServer server = new SocketServer();
+		SocketServer server = new SocketServer(this);
 		IPAddr = server.getLocalIpAddress();
 		TextView tvIp = (TextView) findViewById(R.id.textView2);
 		tvIp.setText("Your IP address: "+IPAddr);
@@ -69,13 +70,12 @@ public class MainActivity extends Activity {
 	  socket = new Socket("10.0.2.15", 9999);
 	  dataOutputStream = new DataOutputStream(socket.getOutputStream());
 	  dataInputStream = new DataInputStream(socket.getInputStream());
-	  dataOutputStream.writeUTF("ksks");
+	  //dataOutputStream.writeUTF("ksks");
 	  Log.i("CLIENT",dataInputStream.readUTF());
 	  Log.i("CLIENT","Completed");
 	 } catch (UnknownHostException e) {
-
-
-		 e.printStackTrace();
+	  // TODO Auto-generated catch block
+	  e.printStackTrace();
 	 } catch (IOException e) {
 	  // TODO Auto-generated catch block
 	  e.printStackTrace();
@@ -132,38 +132,98 @@ public class MainActivity extends Activity {
 		@Override
 		protected Socket doInBackground(Void... params) {
 			// TODO Auto-generated method stub
-			SocketServer server = new SocketServer();
+			Socket socket = null;
+			DataInputStream dataInputStream = null;
+			DataOutputStream dataOutputStream = null;
+			Context con = null;
+			ServerSocket serverSocket = null;
 			try {
-				Socket socket = null;
-				server.Listen();
-				socket=server.socket;
-				//DataInputStream dis = new DataInputStream(socket.getInputStream());
-				if(socket.isClosed())
-				Log.i("SOCKET","Closed");
-				else Log.i("SOCKET","Not closed");
-				return socket;
-			} catch (IOException e) {
+				serverSocket = new ServerSocket(9999);
+			} catch (IOException e1) {
 				// TODO Auto-generated catch block
-				Log.i("SERVER","couldn't Listen");
-				e.printStackTrace();
+				e1.printStackTrace();
 			}
-			return null;
+			Log.i("SERVER","Listening on "+new SocketServer(con).getLocalIpAddress()+" 9999...");
+			while(true)
+			{
+				try
+				{
+					socket = serverSocket.accept();
+					//dataInputStream = new DataInputStream(socket.getInputStream());
+					//dataOutputStream = new DataOutputStream(socket.getOutputStream());
+					Log.i("SERVER","Address:"+socket.getInetAddress());
+					//String filename = dataInputStream.readUTF();
+					//dataOutputStream.writeUTF("Hello World");
+					if(socket.isClosed())
+						Log.i("SOCKET","Closed");
+						else Log.i("SOCKET","Not closed");
+					runOnUiThread(new Runnable() {
+						public void run() {
+							DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+							    @Override
+							    public void onClick(DialogInterface dialog, int which) {
+							        switch (which){
+							        case DialogInterface.BUTTON_POSITIVE:
+							            {
+							            	TextView tv =(TextView) findViewById(R.id.textView1);
+							            	tv.setText("Yes selected");
+							            	break;
+							            }
+
+							        case DialogInterface.BUTTON_NEGATIVE:
+							        {	TextView tv =(TextView) findViewById(R.id.textView1);
+							            tv.setText("No selected");
+							            break;
+							        }
+							        }
+							    }
+							};
+							AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+							builder.setMessage("Are you sure?").setPositiveButton("Yes", dialogClickListener)
+							    .setNegativeButton("No", dialogClickListener).show();
+						}
+					});
+					
+					//socket.getInetAddress()+" wants to share "+filename+" with you?
+				}
+				catch (IOException e)
+				{
+				    // TODO Auto-generated catch block
+					Log.i("SERVER","Encountered exception");
+				    e.printStackTrace();
+				}
+				finally
+				{
+					if(socket!=null||dataInputStream!=null|dataOutputStream!=null)
+					try
+					{
+						if(socket!=null) socket.close();
+						if(dataInputStream!=null) dataInputStream.close();
+						if(dataOutputStream!=null) dataOutputStream.close();
+					}
+					catch (IOException e2) {
+						// TODO: handle exception
+						e2.printStackTrace();
+						Log.i("SERVER","Encountered exception");
+					}
+				}
+			}
 		}
 		@Override
-		protected void onPostExecute(final Socket result) {
+		protected void onPostExecute(Socket result) {
 			// TODO Auto-generated method stub
 			super.onPostExecute(result);
 			DataInputStream dataInputStream;
-			final String a=result.getInetAddress().toString();
+			String a=result.getInetAddress().toString();
 			//dataInputStream = new DataInputStream(result.getInputStream());
 			//String filename = dataInputStream.readUTF();
 			DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
 			    @Override
 			    public void onClick(DialogInterface dialog, int which) {
-			    	Log.i("TEXT","Entered:"+which);
 			        switch (which){
 			        case DialogInterface.BUTTON_POSITIVE:
-			        	break;
+			            Log.i("TEXT","S");
+			            break;
 
 			        case DialogInterface.BUTTON_NEGATIVE:
 			            //No button clicked
@@ -173,10 +233,18 @@ public class MainActivity extends Activity {
 			};
 
 			if (loginActivityWeakRef.get() != null && !loginActivityWeakRef.get().isFinishing()) {
-				AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-				builder.setMessage("Are you sure?").setPositiveButton("Yes", dialogClickListener)
-				    .setNegativeButton("No", dialogClickListener).show();
-		        Log.i("TEXT","S:"+result.getInetAddress());
+		        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+		        builder.setCancelable(true);
+		        builder.setMessage("Sure?");
+		        builder.setInverseBackgroundForced(true);
+
+		        builder.setNeutralButton("Ok",new DialogInterface.OnClickListener() {
+		          public void onClick(DialogInterface dialog, int whichButton){
+		            dialog.dismiss();
+		          }
+		        });
+
+		        builder.show();
 			}
 		}
 		

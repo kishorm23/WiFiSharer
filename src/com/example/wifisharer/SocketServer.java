@@ -13,17 +13,20 @@ import java.net.SocketException;
 import java.nio.Buffer;
 import java.util.Enumeration;
 
+import android.content.Context;
 import android.util.Log;
 
 public class SocketServer {
 	public Socket socket;
 	DataInputStream dataInputStream;
 	DataOutputStream dataOutputStream;
-	public SocketServer()
+	Context con;
+	public SocketServer(Context context)
 	{
 		socket=null;
 		dataInputStream=null;
 		dataOutputStream=null;
+		con=context;
 	}
 	public String Listen() throws IOException
 	{
@@ -42,6 +45,7 @@ public class SocketServer {
 				if(socket.isClosed())
 					Log.i("SOCKET","Closed");
 					else Log.i("SOCKET","Not closed");
+				
 				return "";
 				
 				//socket.getInetAddress()+" wants to share "+filename+" with you?
