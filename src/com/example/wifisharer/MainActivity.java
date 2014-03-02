@@ -11,6 +11,7 @@ import java.net.UnknownHostException;
 
 import com.ipaulpro.afilechooser.utils.FileUtils;
 
+import android.R.bool;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -25,6 +26,7 @@ import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +34,7 @@ public class MainActivity extends Activity {
     private static final String TAG = "FileChooserExampleActivity";
     private static final int REQUEST_CODE = 6384; // onActivityResult request
     public String IPAddr=null;                                              // code
+    public int concurrent=0;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -66,11 +69,13 @@ public class MainActivity extends Activity {
 	 DataInputStream dataInputStream = null;
 
 	 try {
+
+		 EditText et = (EditText) findViewById(R.id.editText1);
 		 Log.i("CLIENT","trying to connect...");
-	  socket = new Socket("10.0.2.15", 9999);
+	  socket = new Socket(et.getText().toString(), 9999);
 	  dataOutputStream = new DataOutputStream(socket.getOutputStream());
 	  dataInputStream = new DataInputStream(socket.getInputStream());
-	  //dataOutputStream.writeUTF("ksks");
+	  dataOutputStream.writeUTF("ksks");
 	  Log.i("CLIENT",dataInputStream.readUTF());
 	  Log.i("CLIENT","Completed");
 	 } catch (UnknownHostException e) {
@@ -137,6 +142,7 @@ public class MainActivity extends Activity {
 			DataOutputStream dataOutputStream = null;
 			Context con = null;
 			ServerSocket serverSocket = null;
+			boolean Selected;
 			try {
 				serverSocket = new ServerSocket(9999);
 			} catch (IOException e1) {
@@ -149,14 +155,13 @@ public class MainActivity extends Activity {
 				try
 				{
 					socket = serverSocket.accept();
-					//dataInputStream = new DataInputStream(socket.getInputStream());
-					//dataOutputStream = new DataOutputStream(socket.getOutputStream());
+					dataInputStream = new DataInputStream(socket.getInputStream());
+					dataOutputStream = new DataOutputStream(socket.getOutputStream());
+					final Socket sos = socket;
 					Log.i("SERVER","Address:"+socket.getInetAddress());
-					//String filename = dataInputStream.readUTF();
-					//dataOutputStream.writeUTF("Hello World");
-					if(socket.isClosed())
-						Log.i("SOCKET","Closed");
-						else Log.i("SOCKET","Not closed");
+					final String filename = dataInputStream.readUTF();
+					final String address = socket.getInetAddress().toString();
+					dataOutputStream.writeUTF("Hello World");
 					runOnUiThread(new Runnable() {
 						public void run() {
 							DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
@@ -167,23 +172,38 @@ public class MainActivity extends Activity {
 							            {
 							            	TextView tv =(TextView) findViewById(R.id.textView1);
 							            	tv.setText("Yes selected");
+							            	MainActivity.this.concurrent=1;
 							            	break;
 							            }
 
 							        case DialogInterface.BUTTON_NEGATIVE:
 							        {	TextView tv =(TextView) findViewById(R.id.textView1);
 							            tv.setText("No selected");
+							            MainActivity.this.concurrent=2;
 							            break;
 							        }
 							        }
 							    }
 							};
 							AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-							builder.setMessage("Are you sure?").setPositiveButton("Yes", dialogClickListener)
-							    .setNegativeButton("No", dialogClickListener).show();
+							builder.setMessage(address.substring(1)+" wants to share "+filename+" with you?").setPositiveButton("Accept", dialogClickListener)
+							    .setNegativeButton("Decline", dialogClickListener).show();
 						}
 					});
-					
+					while(MainActivity.this.concurrent==0);
+					switch (MainActivity.this.concurrent) {
+						case 1:
+						{
+							dataOutputStream.writeUTF("ACK");
+							break;
+						}
+						case 2:
+						{
+							dataOutputStream.writeUTF("DRP");
+							break;
+						}
+					}
+					MainActivity.this.concurrent=0;
 					//socket.getInetAddress()+" wants to share "+filename+" with you?
 				}
 				catch (IOException e)
@@ -213,39 +233,6 @@ public class MainActivity extends Activity {
 		protected void onPostExecute(Socket result) {
 			// TODO Auto-generated method stub
 			super.onPostExecute(result);
-			DataInputStream dataInputStream;
-			String a=result.getInetAddress().toString();
-			//dataInputStream = new DataInputStream(result.getInputStream());
-			//String filename = dataInputStream.readUTF();
-			DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-			    @Override
-			    public void onClick(DialogInterface dialog, int which) {
-			        switch (which){
-			        case DialogInterface.BUTTON_POSITIVE:
-			            Log.i("TEXT","S");
-			            break;
-
-			        case DialogInterface.BUTTON_NEGATIVE:
-			            //No button clicked
-			            break;
-			        }
-			    }
-			};
-
-			if (loginActivityWeakRef.get() != null && !loginActivityWeakRef.get().isFinishing()) {
-		        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-		        builder.setCancelable(true);
-		        builder.setMessage("Sure?");
-		        builder.setInverseBackgroundForced(true);
-
-		        builder.setNeutralButton("Ok",new DialogInterface.OnClickListener() {
-		          public void onClick(DialogInterface dialog, int whichButton){
-		            dialog.dismiss();
-		          }
-		        });
-
-		        builder.show();
-			}
 		}
 		
 	}
