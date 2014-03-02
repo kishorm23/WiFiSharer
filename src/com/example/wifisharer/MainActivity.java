@@ -1,9 +1,15 @@
 package com.example.wifisharer;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -70,19 +76,38 @@ public class MainActivity extends Activity {
 
 	 try {
 
-		 EditText et = (EditText) findViewById(R.id.editText1);
+		 EditText et2 = (EditText) findViewById(R.id.editText2);
+		 EditText et1 = (EditText) findViewById(R.id.editText1);
 		 Log.i("CLIENT","trying to connect...");
-	  socket = new Socket(et.getText().toString(), 9999);
+	  socket = new Socket(et2.getText().toString(), 9999);
 	  dataOutputStream = new DataOutputStream(socket.getOutputStream());
 	  dataInputStream = new DataInputStream(socket.getInputStream());
-	  dataOutputStream.writeUTF("ksks");
-	  Log.i("CLIENT",dataInputStream.readUTF());
+	  String pathName = et1.getText().toString();
+	  String fileName = new File(pathName).getName();
+	  dataOutputStream.writeUTF(fileName);
+	  String response = dataInputStream.readUTF();
+	  if(response.equals("ACK"))
+	  {
+		  Log.i("CLIENT","Sending file");
+		  File SendFile = new File (pathName); 
+		  byte [] bytearray = new byte[(int) SendFile.length()];
+		  dataOutputStream.writeInt((int) SendFile.length());
+		  FileInputStream fis = new FileInputStream(SendFile);
+		  BufferedInputStream bis = new BufferedInputStream(fis);
+		  bis.read(bytearray, 0, bytearray.length);
+		  OutputStream os = socket.getOutputStream();
+		  os.write(bytearray, 0, bytearray.length);
+		  os.flush();
+	  }
+	  Log.i("CLIENT",response);
 	  Log.i("CLIENT","Completed");
 	 } catch (UnknownHostException e) {
 	  // TODO Auto-generated catch block
+		 Toast.makeText(getApplication(), "No route to host", 2000);
 	  e.printStackTrace();
 	 } catch (IOException e) {
 	  // TODO Auto-generated catch block
+		 Toast.makeText(getApplication(), "No route to host", 2000);
 	  e.printStackTrace();
 	 }
 		
@@ -194,7 +219,25 @@ public class MainActivity extends Activity {
 					switch (MainActivity.this.concurrent) {
 						case 1:
 						{
-							dataOutputStream.writeUTF("ACK");
+							//dataOutputStream.writeUTF("ACK");
+							int current=0;
+							int filesize=dataInputStream.readInt();
+							Log.i("SERVER","filesize length:"+filesize);
+							 byte [] mybytearray  = new byte [filesize];
+					         InputStream is = socket.getInputStream();
+
+					         FileOutputStream fos = new FileOutputStream("/as.txt"); // destination path and name of file
+					         BufferedOutputStream bos = new BufferedOutputStream(fos);
+					          int  bytesRead = is.read(mybytearray,0,mybytearray.length);
+					          current = bytesRead;
+					          do {
+					               bytesRead = is.read(mybytearray, current, (mybytearray.length-current));
+					               if(bytesRead >= 0) current += bytesRead;
+					            } while(bytesRead > -1);
+
+					            bos.write(mybytearray, 0 , current);
+					            bos.flush();
+					            bos.close();
 							break;
 						}
 						case 2:
