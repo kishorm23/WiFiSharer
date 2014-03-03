@@ -24,6 +24,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -128,6 +129,7 @@ public class MainActivity extends Activity {
 		  fis.read(bytearray,0,(int) SendFile.length());
 		 
 		  Log.i("CLIENT",bytearray.toString()+" "+bytearray.length+" "+ SendFile.toString());
+		  Log.i("CLIENT",bytearray[0]+", "+bytearray[1]+", "+bytearray[2]);
 		  //dataOutputStream.write(bytearray,0,bytearray.length);
 		  //fis.read(bytearray);
 		  //Log.i("CLIENT","Bytes array:"+bytearray.toString());
@@ -148,16 +150,17 @@ public class MainActivity extends Activity {
 			  dataOutputStream.writeUTF(text.toString());
 		  }*/
 		  dataOutputStream.write(bytearray);
+		  socket.close();
 	  }
 	  Log.i("CLIENT",response);
 	  Log.i("CLIENT","Completed");
 	 } catch (UnknownHostException e) {
 	  // TODO Auto-generated catch block
-		 Toast.makeText(getApplication(), "No route to host", 2000);
+		 Log.i("CLIENT","Exception occured");
 	  e.printStackTrace();
 	 } catch (IOException e) {
 	  // TODO Auto-generated catch block
-		 Toast.makeText(getApplication(), "No route to host", 2000);
+		 Log.i("CLIENT","Exception occured");
 	  e.printStackTrace();
 	 }
 		
@@ -288,7 +291,7 @@ public class MainActivity extends Activity {
 					while(MainActivity.this.concurrent==0)
 					{
 						try {
-							Thread.sleep(500);
+							Thread.sleep(50);
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -304,7 +307,16 @@ public class MainActivity extends Activity {
 							int filesize=dataInputStream.readInt();
 							Log.i("SERVER","filesize length:"+filesize);
 							 byte [] mybytearray  = new byte [filesize];
-							 dataInputStream.read(mybytearray);
+							 int received;
+							 FileOutputStream fos = new FileOutputStream(Environment.getExternalStorageDirectory().getAbsolutePath()+"//Shared//"+filename);
+							 //for(int i=0;i<filesize;i++)
+							 //{
+								 dataInputStream.readFully(mybytearray, 0, filesize);
+								 //Log.i("SERVER",""+(char)received);
+								 fos.write(mybytearray, 0, filesize);
+								//Log.i("SERVER",""+i+" "+filesize);
+							 //}
+							 Log.i("SERVER","Received"+mybytearray.length);
 							 Log.i("SERVER",mybytearray[0]+", "+mybytearray[1]+", "+mybytearray[2]);
 					         //InputStream is = socket.getInputStream();
 
@@ -322,8 +334,11 @@ public class MainActivity extends Activity {
 					            //bos.close();
 							 //dataInputStream.read(mybytearray);
 							 //Log.i("SERVER",file);
-							 FileOutputStream fos = new FileOutputStream("//mnt//sdcard//Shared//"+filename+"sd");
-							 fos.write(mybytearray);
+							 runOnUiThread(new Runnable() {
+									public void run() {
+										Toast.makeText(getApplicationContext(), "File "+filename+" stored in shared/", 2000);
+									}
+							 });
 							break;
 						}
 						case 2:
