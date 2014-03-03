@@ -2,11 +2,13 @@ package com.example.wifisharer;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -20,7 +22,9 @@ import com.ipaulpro.afilechooser.utils.FileUtils;
 import android.R.bool;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
@@ -61,43 +65,89 @@ public class MainActivity extends Activity {
         Button push = (Button) findViewById(R.id.button1);
         push.setOnClickListener(new OnClickListener() {
 			
+			@SuppressLint("NewApi")
 			@Override
 			public void onClick(View v) {
-				ConnectServer();
+				
+				 EditText et2 = (EditText) findViewById(R.id.editText2);
+				 EditText et1 = (EditText) findViewById(R.id.editText1);
+				 String pathName = et1.getText().toString();
+				 String IpAddr = et2.getText().toString();
+				 Log.i("CLIENT","just Inside Async Task");
+				 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+				    new ClientSide().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,pathName,IpAddr);
+				 else
+				     new ClientSide().execute(pathName,IpAddr);
 				
 			}
 		});
 	}
 	
-	private void ConnectServer()
+	private void ConnectServer(String pathName,String IpAddr)
 	{ Socket socket = null;
 	 DataOutputStream dataOutputStream = null;
 	 DataInputStream dataInputStream = null;
 
 	 try {
-
-		 EditText et2 = (EditText) findViewById(R.id.editText2);
-		 EditText et1 = (EditText) findViewById(R.id.editText1);
 		 Log.i("CLIENT","trying to connect...");
-	  socket = new Socket(et2.getText().toString(), 9999);
+			Log.i("CLIENT",IpAddr);
+		if(IpAddr.equals(null)) IpAddr="127.0.0.1";
+
+	  socket = new Socket(IpAddr, 9999);
 	  dataOutputStream = new DataOutputStream(socket.getOutputStream());
 	  dataInputStream = new DataInputStream(socket.getInputStream());
-	  String pathName = et1.getText().toString();
 	  String fileName = new File(pathName).getName();
 	  dataOutputStream.writeUTF(fileName);
 	  String response = dataInputStream.readUTF();
 	  if(response.equals("ACK"))
 	  {
 		  Log.i("CLIENT","Sending file");
-		  File SendFile = new File (pathName); 
-		  byte [] bytearray = new byte[(int) SendFile.length()];
+			Log.i("CLIENT","step 2");
+		  File SendFile = new File (pathName);
+		  Log.i("CLIENT","Length:"+SendFile.length());
+		  int a=(int) SendFile.length();
+			Log.i("CLIENT","step 3");
+		  byte [] bytearray = new byte[a];
+			int resource;
+			Log.i("CLIENT","step 4");
 		  dataOutputStream.writeInt((int) SendFile.length());
+			Log.i("CLIENT","step 5");
 		  FileInputStream fis = new FileInputStream(SendFile);
-		  BufferedInputStream bis = new BufferedInputStream(fis);
+			Log.i("CLIENT","step 6");
+			/*for(int i=0;i<a;i++)
+			{
+				resource = fis.read();
+				Log.i("CLIENT",resource);
+				dataOutputStream.writeByte(resource);
+			}*/
+		  /*BufferedInputStream bis = new BufferedInputStream(fis);
 		  bis.read(bytearray, 0, bytearray.length);
 		  OutputStream os = socket.getOutputStream();
 		  os.write(bytearray, 0, bytearray.length);
-		  os.flush();
+		  os.flush();*/
+		  fis.read(bytearray,0,(int) SendFile.length());
+		 
+		  Log.i("CLIENT",bytearray.toString()+" "+bytearray.length+" "+ SendFile.toString());
+		  //dataOutputStream.write(bytearray,0,bytearray.length);
+		  //fis.read(bytearray);
+		  //Log.i("CLIENT","Bytes array:"+bytearray.toString());
+		  StringBuilder text = new StringBuilder();
+
+		 /*try {
+		      BufferedReader br = new BufferedReader(new FileReader(pathName));
+		      String line;
+
+		      while ((line = br.readLine()) != null) {
+		          text.append(line);
+		          text.append('\n');
+		      }
+		  }
+		  finally
+		  {
+			  Log.i("CLIENT",text.toString());
+			  dataOutputStream.writeUTF(text.toString());
+		  }*/
+		  dataOutputStream.write(bytearray);
 	  }
 	  Log.i("CLIENT",response);
 	  Log.i("CLIENT","Completed");
@@ -149,7 +199,27 @@ public class MainActivity extends Activity {
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
-	
+	public class ClientSide extends AsyncTask<String, Integer, Void>
+	{
+
+		@Override
+		protected void onPreExecute() {
+			// TODO Auto-generated method stub
+			super.onPreExecute();
+			Toast.makeText(getBaseContext(), "Execute ho gayi", 2000).show();
+		}
+		@Override
+		protected Void doInBackground(String... params) {
+			Log.i("CLIENT","FUCKED UP");
+			ConnectServer(params[0],params[1]);
+			return null;
+		}
+		protected void onPostExecute() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	}
 	public class CreateServer extends AsyncTask<Void, Integer, Socket>
 	{
 		private final WeakReference<MainActivity> loginActivityWeakRef;
@@ -186,7 +256,7 @@ public class MainActivity extends Activity {
 					Log.i("SERVER","Address:"+socket.getInetAddress());
 					final String filename = dataInputStream.readUTF();
 					final String address = socket.getInetAddress().toString();
-					dataOutputStream.writeUTF("Hello World");
+					dataOutputStream.writeUTF("ACK");
 					runOnUiThread(new Runnable() {
 						public void run() {
 							DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
@@ -215,29 +285,45 @@ public class MainActivity extends Activity {
 							    .setNegativeButton("Decline", dialogClickListener).show();
 						}
 					});
-					while(MainActivity.this.concurrent==0);
+					while(MainActivity.this.concurrent==0)
+					{
+						try {
+							Thread.sleep(500);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
 					switch (MainActivity.this.concurrent) {
 						case 1:
 						{
 							//dataOutputStream.writeUTF("ACK");
-							int current=0;
+							int current=0; 
+							Log.i("SERVER","In the zone");
+							Log.i("SERVER","Socket closed:"+socket.isClosed());
 							int filesize=dataInputStream.readInt();
 							Log.i("SERVER","filesize length:"+filesize);
 							 byte [] mybytearray  = new byte [filesize];
-					         InputStream is = socket.getInputStream();
+							 dataInputStream.read(mybytearray);
+							 Log.i("SERVER",mybytearray[0]+", "+mybytearray[1]+", "+mybytearray[2]);
+					         //InputStream is = socket.getInputStream();
 
-					         FileOutputStream fos = new FileOutputStream("/as.txt"); // destination path and name of file
-					         BufferedOutputStream bos = new BufferedOutputStream(fos);
-					          int  bytesRead = is.read(mybytearray,0,mybytearray.length);
+					         //FileOutputStream fos = new FileOutputStream("/mnt/sdcard/as.txt"); // destination path and name of file
+					         //BufferedOutputStream bos = new BufferedOutputStream(fos);
+					          /*int  bytesRead = is.read(mybytearray,0,mybytearray.length);
 					          current = bytesRead;
 					          do {
 					               bytesRead = is.read(mybytearray, current, (mybytearray.length-current));
 					               if(bytesRead >= 0) current += bytesRead;
-					            } while(bytesRead > -1);
-
-					            bos.write(mybytearray, 0 , current);
-					            bos.flush();
-					            bos.close();
+					               Log.i("SERVER","DATA:"+current+" "+mybytearray.toString());
+					            } while(bytesRead > -1);*/
+					            //bos.write(mybytearray, 0 , current);
+					            //bos.flush();
+					            //bos.close();
+							 //dataInputStream.read(mybytearray);
+							 //Log.i("SERVER",file);
+							 FileOutputStream fos = new FileOutputStream("//mnt//sdcard//Shared//"+filename+"sd");
+							 fos.write(mybytearray);
 							break;
 						}
 						case 2:
