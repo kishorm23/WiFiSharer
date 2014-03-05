@@ -28,6 +28,8 @@ import android.os.Environment;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -50,7 +52,7 @@ public class MainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		new CreateServer(this).execute();
+		new CreateServer().execute();
 		SocketServer server = new SocketServer(this);
 		IPAddr = server.getLocalIpAddress();
 		TextView tvIp = (TextView) findViewById(R.id.textView2);
@@ -83,93 +85,9 @@ public class MainActivity extends Activity {
 			}
 		});
 	}
-	
-	private void ConnectServer(String pathName,String IpAddr)
-	{ Socket socket = null;
-	 DataOutputStream dataOutputStream = null;
-	 DataInputStream dataInputStream = null;
-
-	 try {
-		 Log.i("CLIENT","trying to connect...");
-			Log.i("CLIENT",IpAddr);
-		if(IpAddr.equals(null)) IpAddr="127.0.0.1";
-
-	  socket = new Socket(IpAddr, 9999);
-	  dataOutputStream = new DataOutputStream(socket.getOutputStream());
-	  dataInputStream = new DataInputStream(socket.getInputStream());
-	  String fileName = new File(pathName).getName();
-	  dataOutputStream.writeUTF(fileName);
-	  String response = dataInputStream.readUTF();
-	  if(response.equals("ACK"))
-	  {
-		  Log.i("CLIENT","Sending file");
-			Log.i("CLIENT","step 2");
-		  File SendFile = new File (pathName);
-		  Log.i("CLIENT","Length:"+SendFile.length());
-		  int a=(int) SendFile.length();
-			Log.i("CLIENT","step 3");
-		  byte [] bytearray = new byte[a];
-			int resource;
-			Log.i("CLIENT","step 4");
-		  dataOutputStream.writeInt((int) SendFile.length());
-			Log.i("CLIENT","step 5");
-		  FileInputStream fis = new FileInputStream(SendFile);
-			Log.i("CLIENT","step 6");
-			/*for(int i=0;i<a;i++)
-			{
-				resource = fis.read();
-				Log.i("CLIENT",resource);
-				dataOutputStream.writeByte(resource);
-			}*/
-		  /*BufferedInputStream bis = new BufferedInputStream(fis);
-		  bis.read(bytearray, 0, bytearray.length);
-		  OutputStream os = socket.getOutputStream();
-		  os.write(bytearray, 0, bytearray.length);
-		  os.flush();*/
-		  fis.read(bytearray,0,(int) SendFile.length());
-		 
-		  Log.i("CLIENT",bytearray.toString()+" "+bytearray.length+" "+ SendFile.toString());
-		  Log.i("CLIENT",bytearray[0]+", "+bytearray[1]+", "+bytearray[2]);
-		  //dataOutputStream.write(bytearray,0,bytearray.length);
-		  //fis.read(bytearray);
-		  //Log.i("CLIENT","Bytes array:"+bytearray.toString());
-		  StringBuilder text = new StringBuilder();
-
-		 /*try {
-		      BufferedReader br = new BufferedReader(new FileReader(pathName));
-		      String line;
-
-		      while ((line = br.readLine()) != null) {
-		          text.append(line);
-		          text.append('\n');
-		      }
-		  }
-		  finally
-		  {
-			  Log.i("CLIENT",text.toString());
-			  dataOutputStream.writeUTF(text.toString());
-		  }*/
-		  dataOutputStream.write(bytearray);
-		  socket.close();
-	  }
-	  Log.i("CLIENT",response);
-	  Log.i("CLIENT","Completed");
-	 } catch (UnknownHostException e) {
-	  // TODO Auto-generated catch block
-		 Log.i("CLIENT","Exception occured");
-	  e.printStackTrace();
-	 } catch (IOException e) {
-	  // TODO Auto-generated catch block
-		 Log.i("CLIENT","Exception occured");
-	  e.printStackTrace();
-	 }
 		
-	}
-	
 	 private void showChooser() {
-	        // Use the GET_CONTENT intent from the utility class
 	        Intent target = FileUtils.createGetContentIntent();
-	        // Create the chooser Intent
 	        Intent intent = Intent.createChooser(
 	                target, "Selece a file");
 	        try {
@@ -190,7 +108,7 @@ public class MainActivity extends Activity {
 	                 // Get the File path from the Uri
 	                 String path = FileUtils.getPath(this, uri);
 	                 Log.i("PATH",path);
-	                 TextView tv = (TextView) findViewById(R.id.editText1);
+	                 EditText tv = (EditText) findViewById(R.id.editText1);
 	                 tv.setText(path);
 	             }
 	             break;
@@ -202,35 +120,140 @@ public class MainActivity extends Activity {
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
-	public class ClientSide extends AsyncTask<String, Integer, Void>
+	@SuppressLint({ "DefaultLocale", "ShowToast" })
+	public class ClientSide extends AsyncTask<String, Integer, Long>
 	{
-
+		ProgressDialog dialog;
+		boolean accepted=false;
 		@Override
 		protected void onPreExecute() {
 			// TODO Auto-generated method stub
 			super.onPreExecute();
-			Toast.makeText(getBaseContext(), "Execute ho gayi", 2000).show();
+			EditText et1 = (EditText) findViewById(R.id.editText1);
+			String pathName = et1.getText().toString();
+			File SendFile = new File (pathName);
+			String fileName = SendFile.getName();
+			Log.i("CLIENT","In pre execute"); 
+		    dialog = new ProgressDialog(MainActivity.this);
+		    dialog.setMessage("Sending "+fileName+"...");
+		    dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+		    dialog.setMax(100);
+		    dialog.setCancelable(true);
+		    dialog.show();
 		}
 		@Override
-		protected Void doInBackground(String... params) {
-			Log.i("CLIENT","FUCKED UP");
-			ConnectServer(params[0],params[1]);
-			return null;
+		protected Long doInBackground(String... params) {
+			//long size = ConnectServer(params[0],params[1]);
+			String IpAddr = params[1];
+			String pathName = params[0];
+			Socket socket = null;
+			DataOutputStream dataOutputStream = null;
+			DataInputStream dataInputStream = null;
+			try
+			{
+				Log.i("CLIENT","trying to connect...");
+				Log.i("CLIENT",IpAddr);
+				
+				if(IpAddr.equals(null)) IpAddr="127.0.0.1";
+				
+				socket = new Socket(IpAddr, 9999);
+				dataOutputStream = new DataOutputStream(socket.getOutputStream());
+				dataInputStream = new DataInputStream(socket.getInputStream());
+				File SendFile = new File (pathName);
+				String fileName = SendFile.getName();
+				long fileSize = SendFile.length();
+				
+				dataOutputStream.writeUTF(fileName);
+				String response = dataInputStream.readUTF();
+				
+				if(response.equals("ACK"))
+				{
+					accepted = true;
+					Log.i("CLIENT","Sending file");
+					Log.i("CLIENT","Length:"+SendFile.length());
+					byte [] bytearray = new byte[65536];
+					dataOutputStream.writeInt((int) fileSize);
+					FileInputStream fis = new FileInputStream(SendFile);
+					int count=0;
+					while(count<fileSize)
+					{
+						Log.i("CLIENT",count+" "+fileSize);
+						if(fileSize-count>65536)
+						{
+							fis.read(bytearray,0,65536);
+							dataOutputStream.write(bytearray, 0, 65536);
+						}
+						else
+						{
+							fis.read(bytearray,0,(int) (fileSize-count));
+							dataOutputStream.write(bytearray, 0, (int) (fileSize-count));
+						}
+						count=count+65536;
+						this.publishProgress(count,(int) fileSize);
+					}
+					Log.i("CLIENT",bytearray.toString()+" "+bytearray.length+" "+ SendFile.toString());
+					Log.i("CLIENT",bytearray[0]+", "+bytearray[1]+", "+bytearray[2]);
+					socket.close();
+				}
+				Log.i("CLIENT",response);
+				Log.i("CLIENT","Completed");
+				dataInputStream.close();
+				dataOutputStream.close();
+				try {
+					Thread.sleep(5000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				socket.close();
+				return fileSize;
+		 } catch (UnknownHostException e) {
+		  // TODO Auto-generated catch block
+			 Log.i("CLIENT","Exception occured");
+		  e.printStackTrace();
+		 } catch (IOException e) {
+		  // TODO Auto-generated catch block
+			 Log.i("CLIENT","Exception occured");
+		  e.printStackTrace();
+		 }
+			return (long) 0;
 		}
-		protected void onPostExecute() {
+	    protected void onProgressUpdate(Integer... progress) { 
+	    	float fprogress = (progress[0]/progress[1]);
+	    	Log.i("CLIENT","Inside publishProg "+progress[1]+", "+progress[0]+", "+fprogress*100);
+	    	int sProgress = (int)(((double)progress[0]/(double)progress[1]) * 100);;
+	    	Log.i("CLIENT","YE:"+sProgress);
+	        dialog.setProgress(sProgress);
+	        }
+		@Override
+		protected void onPostExecute(Long result) {
 			// TODO Auto-generated method stub
-			
+			dialog.dismiss();
+			if(accepted) Toast.makeText(getBaseContext(), "File Sent: Total data transfer "+humanReadableByteCount(result, true)+".", 2000).show();
+			else Toast.makeText(getBaseContext(), "Peer refused to accept the file.", 2000).show();
+		}
+		
+		public String humanReadableByteCount(long bytes, boolean si) {
+		    int unit = si ? 1000 : 1024;
+		    if (bytes < unit) return bytes + " B";
+		    int exp = (int) (Math.log(bytes) / Math.log(unit));
+		    String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "");
+		    return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
 		}
 		
 	}
 	public class CreateServer extends AsyncTask<Void, Integer, Socket>
 	{
-		private final WeakReference<MainActivity> loginActivityWeakRef;
-		
-		public CreateServer(MainActivity mainActivity)
-		{
-			 super();
-			 this.loginActivityWeakRef= new WeakReference<MainActivity >(mainActivity);
+		ProgressDialog dialog;
+		@Override
+		protected void onPreExecute() {
+			// TODO Auto-generated method stub
+			super.onPreExecute();
+			Log.i("CLIENT","In pre execute"); 
+		    dialog = new ProgressDialog(MainActivity.this);
+		    dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+		    dialog.setMax(100);
+		    dialog.setCancelable(true);
 		}
 		@Override
 		protected Socket doInBackground(Void... params) {
@@ -240,7 +263,6 @@ public class MainActivity extends Activity {
 			DataOutputStream dataOutputStream = null;
 			Context con = null;
 			ServerSocket serverSocket = null;
-			boolean Selected;
 			try {
 				serverSocket = new ServerSocket(9999);
 			} catch (IOException e1) {
@@ -255,11 +277,10 @@ public class MainActivity extends Activity {
 					socket = serverSocket.accept();
 					dataInputStream = new DataInputStream(socket.getInputStream());
 					dataOutputStream = new DataOutputStream(socket.getOutputStream());
-					final Socket sos = socket;
 					Log.i("SERVER","Address:"+socket.getInetAddress());
 					final String filename = dataInputStream.readUTF();
 					final String address = socket.getInetAddress().toString();
-					dataOutputStream.writeUTF("ACK");
+					//dataOutputStream.writeUTF("ACK");
 					runOnUiThread(new Runnable() {
 						public void run() {
 							DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
@@ -268,15 +289,12 @@ public class MainActivity extends Activity {
 							        switch (which){
 							        case DialogInterface.BUTTON_POSITIVE:
 							            {
-							            	TextView tv =(TextView) findViewById(R.id.textView1);
-							            	tv.setText("Yes selected");
 							            	MainActivity.this.concurrent=1;
 							            	break;
 							            }
 
 							        case DialogInterface.BUTTON_NEGATIVE:
-							        {	TextView tv =(TextView) findViewById(R.id.textView1);
-							            tv.setText("No selected");
+							        {
 							            MainActivity.this.concurrent=2;
 							            break;
 							        }
@@ -285,7 +303,7 @@ public class MainActivity extends Activity {
 							};
 							AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 							builder.setMessage(address.substring(1)+" wants to share "+filename+" with you?").setPositiveButton("Accept", dialogClickListener)
-							    .setNegativeButton("Decline", dialogClickListener).show();
+							    .setNegativeButton("Decline", dialogClickListener).setCancelable(false).show();
 						}
 					});
 					while(MainActivity.this.concurrent==0)
@@ -300,45 +318,47 @@ public class MainActivity extends Activity {
 					switch (MainActivity.this.concurrent) {
 						case 1:
 						{
-							//dataOutputStream.writeUTF("ACK");
-							int current=0; 
+							runOnUiThread(new Runnable() {
+								public void run() {
+								    dialog.setMessage("Receiving "+filename+"...");
+									dialog.show();
+								}
+							});
+							dataOutputStream.writeUTF("ACK");
 							Log.i("SERVER","In the zone");
 							Log.i("SERVER","Socket closed:"+socket.isClosed());
 							int filesize=dataInputStream.readInt();
 							Log.i("SERVER","filesize length:"+filesize);
-							 byte [] mybytearray  = new byte [filesize];
-							 int received;
+							 byte [] mybytearray  = new byte [32768];
+							 File folder = new File(Environment.getExternalStorageDirectory() + "//shared");
+							 folder.mkdir();
 							 FileOutputStream fos = new FileOutputStream(Environment.getExternalStorageDirectory().getAbsolutePath()+"//Shared//"+filename);
 							 //for(int i=0;i<filesize;i++)
-							 //{
-								 dataInputStream.readFully(mybytearray, 0, filesize);
-								 //Log.i("SERVER",""+(char)received);
-								 fos.write(mybytearray, 0, filesize);
-								//Log.i("SERVER",""+i+" "+filesize);
-							 //}
-							 Log.i("SERVER","Received"+mybytearray.length);
-							 Log.i("SERVER",mybytearray[0]+", "+mybytearray[1]+", "+mybytearray[2]);
-					         //InputStream is = socket.getInputStream();
-
-					         //FileOutputStream fos = new FileOutputStream("/mnt/sdcard/as.txt"); // destination path and name of file
-					         //BufferedOutputStream bos = new BufferedOutputStream(fos);
-					          /*int  bytesRead = is.read(mybytearray,0,mybytearray.length);
-					          current = bytesRead;
-					          do {
-					               bytesRead = is.read(mybytearray, current, (mybytearray.length-current));
-					               if(bytesRead >= 0) current += bytesRead;
-					               Log.i("SERVER","DATA:"+current+" "+mybytearray.toString());
-					            } while(bytesRead > -1);*/
-					            //bos.write(mybytearray, 0 , current);
-					            //bos.flush();
-					            //bos.close();
-							 //dataInputStream.read(mybytearray);
-							 //Log.i("SERVER",file);
-							 runOnUiThread(new Runnable() {
+						 	 //{
+							 	long before, after;
+							 	before = System.currentTimeMillis();
+							 	int total=0,count=0;
+							    while ((count = dataInputStream.read(mybytearray)) > 0) {
+							        fos.write(mybytearray, 0, count);
+							        total=total+count;
+							        publishProgress(total,filesize);
+							    }
+							 	after = System.currentTimeMillis();
+							 	Log.i("SERVER","Received"+new File(Environment.getExternalStorageDirectory()+"//shared//"+filename).length()+", Time taken:"+(after-before));
+							 	Log.i("SERVER",mybytearray[0]+", "+mybytearray[1]+", "+mybytearray[2]);
+							 	runOnUiThread(new Runnable() {
 									public void run() {
-										Toast.makeText(getApplicationContext(), "File "+filename+" stored in shared/", 2000);
+										Log.i("SERVER","Inside UI thread");
+										Toast.makeText(getApplicationContext(), "File "+filename+" is stored in shared/", 3000).show();
 									}
 							 });
+								runOnUiThread(new Runnable() {
+									public void run() {
+										dialog.dismiss();
+									}
+								});
+							 	socket.close();
+							 	fos.close();
 							break;
 						}
 						case 2:
@@ -348,6 +368,7 @@ public class MainActivity extends Activity {
 						}
 					}
 					MainActivity.this.concurrent=0;
+					socket.close();
 					//socket.getInetAddress()+" wants to share "+filename+" with you?
 				}
 				catch (IOException e)
@@ -372,6 +393,15 @@ public class MainActivity extends Activity {
 					}
 				}
 			}
+		}
+		@Override
+		protected void onProgressUpdate(Integer... values) {
+			// TODO Auto-generated method stub
+			super.onProgressUpdate(values);
+		    	//Log.i("CLIENT","Inside publishProg "+values[1]+", "+progress[0]+", "+fprogress*100);
+		    	int sProgress = (int)(((double)values[0]/(double)values[1]) * 100);;
+		    	//Log.i("CLIENT","YE:"+sProgress);
+		        dialog.setProgress(sProgress);
 		}
 		@Override
 		protected void onPostExecute(Socket result) {
