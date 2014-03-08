@@ -1,41 +1,34 @@
 package com.example.wifisharer;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.ref.WeakReference;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.regex.Pattern;
 
-import com.ipaulpro.afilechooser.utils.FileUtils;
-
-import android.R.bool;
-import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Environment;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Environment;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -43,8 +36,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.ipaulpro.afilechooser.utils.FileUtils;
+
 public class MainActivity extends Activity {
-    private static final String TAG = "FileChooserExampleActivity";
     private static final int REQUEST_CODE = 6384; // onActivityResult request
     public String IPAddr=null;                                              // code
     public int concurrent=0;
@@ -84,7 +78,27 @@ public class MainActivity extends Activity {
 				
 			}
 		});
+        
+        final Pattern PARTIAl_IP_ADDRESS =
+                Pattern.compile("^((25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[0-9])\\.){0,3}"+
+                                 "((25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[0-9])){0,1}$"); 
+        EditText et2 = (EditText) findViewById(R.id.editText2);
+        et2.addTextChangedListener(new TextWatcher() {                       
+          @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}            
+          @Override public void beforeTextChanged(CharSequence s,int start,int count,int after) {}            
+
+          private String mPreviousText = "";          
+          @Override
+          public void afterTextChanged(Editable s) {          
+              if(PARTIAl_IP_ADDRESS.matcher(s).matches()) {
+                  mPreviousText = s.toString();
+              } else {
+                  s.replace(0, s.length(), mPreviousText);
+              }
+          }
+      });
 	}
+	
 		
 	 private void showChooser() {
 	        Intent target = FileUtils.createGetContentIntent();
@@ -119,6 +133,21 @@ public class MainActivity extends Activity {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
+	}
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// TODO Auto-generated method stub
+		switch(item.getItemId())
+		{
+			case R.id.action_scan:
+			{
+				startActivity(new Intent(this, ScanActivity.class));
+				break;
+			}
+			case R.id.action_settings:
+				break;
+		}
+			return super.onOptionsItemSelected(item);
 	}
 	@SuppressLint({ "DefaultLocale", "ShowToast" })
 	public class ClientSide extends AsyncTask<String, Integer, Long>
@@ -162,7 +191,7 @@ public class MainActivity extends Activity {
 				File SendFile = new File (pathName);
 				String fileName = SendFile.getName();
 				long fileSize = SendFile.length();
-				
+				dataOutputStream.writeInt(01);
 				dataOutputStream.writeUTF(fileName);
 				String response = dataInputStream.readUTF();
 				
@@ -222,7 +251,7 @@ public class MainActivity extends Activity {
 	    	float fprogress = (progress[0]/progress[1]);
 	    	Log.i("CLIENT","Inside publishProg "+progress[1]+", "+progress[0]+", "+fprogress*100);
 	    	int sProgress = (int)(((double)progress[0]/(double)progress[1]) * 100);;
-	    	Log.i("CLIENT","YE:"+sProgress);
+	    	Log.i("CLIENT","Progress:"+sProgress);
 	        dialog.setProgress(sProgress);
 	        }
 		@Override
@@ -278,6 +307,15 @@ public class MainActivity extends Activity {
 					dataInputStream = new DataInputStream(socket.getInputStream());
 					dataOutputStream = new DataOutputStream(socket.getOutputStream());
 					Log.i("SERVER","Address:"+socket.getInetAddress());
+					int request = dataInputStream.readInt();
+					if(request==10)
+					{
+						dataOutputStream.writeUTF("Kishor");
+						socket.close();
+						dataInputStream.close();
+						dataOutputStream.close();
+					}
+					else if(request==01){
 					final String filename = dataInputStream.readUTF();
 					final String address = socket.getInetAddress().toString();
 					//dataOutputStream.writeUTF("ACK");
@@ -320,6 +358,7 @@ public class MainActivity extends Activity {
 						{
 							runOnUiThread(new Runnable() {
 								public void run() {
+									
 								    dialog.setMessage("Receiving "+filename+"...");
 									dialog.show();
 								}
@@ -370,6 +409,7 @@ public class MainActivity extends Activity {
 					MainActivity.this.concurrent=0;
 					socket.close();
 					//socket.getInetAddress()+" wants to share "+filename+" with you?
+					}
 				}
 				catch (IOException e)
 				{
