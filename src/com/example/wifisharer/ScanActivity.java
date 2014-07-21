@@ -38,34 +38,33 @@ public class ScanActivity extends Activity{
 		final Pattern PARTIAl_IP_ADDRESS =
                 Pattern.compile("^((25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[0-9])\\.){0,3}"+
                                  "((25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[0-9])){0,1}$"); 
-          start.addTextChangedListener(new TextWatcher() {                       
-          @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}            
-          @Override public void beforeTextChanged(CharSequence s,int start,int count,int after) {}            
-          private String mPreviousText = "";          
-          @Override
-          public void afterTextChanged(Editable s) {          
-              if(PARTIAl_IP_ADDRESS.matcher(s).matches()) {
-                  mPreviousText = s.toString();
-              } else {
-                  s.replace(0, s.length(), mPreviousText);
-              }
+		start.addTextChangedListener(new TextWatcher() {                       
+		@Override public void onTextChanged(CharSequence s, int start, int before, int count) {}            
+		@Override public void beforeTextChanged(CharSequence s,int start,int count,int after) {}            
+		private String mPreviousText = "";          
+		@Override
+		public void afterTextChanged(Editable s) {          
+		if(PARTIAl_IP_ADDRESS.matcher(s).matches()) {
+			mPreviousText = s.toString();
+		} else {
+			s.replace(0, s.length(), mPreviousText);
+		}
           }
-      });
-          Log.i("SCAN","Chalu hai");
-        end.addTextChangedListener(new TextWatcher() {                       
-              @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}            
-              @Override public void beforeTextChanged(CharSequence s,int start,int count,int after) {}            
+	});
+	end.addTextChangedListener(new TextWatcher() {                       
+		@Override public void onTextChanged(CharSequence s, int start, int before, int count) {}            
+		@Override public void beforeTextChanged(CharSequence s,int start,int count,int after) {}            
 
-              private String mPreviousText = "";          
-              @Override
-              public void afterTextChanged(Editable s) {          
-                  if(PARTIAl_IP_ADDRESS.matcher(s).matches()) {
-                      mPreviousText = s.toString();
-                  } else {
-                      s.replace(0, s.length(), mPreviousText);
-                  }
-              }
-          });
+		private String mPreviousText = "";          
+		@Override
+		public void afterTextChanged(Editable s) {          
+			if(PARTIAl_IP_ADDRESS.matcher(s).matches()) {
+			mPreviousText = s.toString();
+			} else {
+				s.replace(0, s.length(), mPreviousText);
+			}
+		}
+	});
         
         Button bScan = (Button) findViewById(R.id.scan);
         bScan.setOnClickListener(new OnClickListener() {
@@ -73,7 +72,6 @@ public class ScanActivity extends Activity{
      			@SuppressLint("NewApi")
      			@Override
      			public void onClick(View v) {
-     				Log.i("SCAN","Inside onclick");
      				new ScanHosts().execute(start.getText().toString(),end.getText().toString());
      				
      				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
@@ -106,7 +104,6 @@ public class ScanActivity extends Activity{
 					String IP = i.toString();
 					socket = new Socket();
 					socket.connect(new InetSocketAddress(IP, 9999), 100);
-					Log.i("SCAN", "doing something with "+i.toString());
 					dataOutputStream = new DataOutputStream(socket.getOutputStream());
 					dataInputStream = new DataInputStream(socket.getInputStream());
 					dataOutputStream.writeInt(10);
@@ -114,11 +111,9 @@ public class ScanActivity extends Activity{
 					response = dataInputStream.readUTF();
 					//if(response!=null)
 					{
-						Log.i("SCAN",IP+" is alive name is "+response);
+						Log.i("SCAN",IP+" is alive, name is "+response);
 						alive[iter][0]=i.toString();
-						Log.i("SCAN","2");
 						alive[iter][1]=response;
-						Log.i("SCAN","3");
 						iter++;
 					}
 					

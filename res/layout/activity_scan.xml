@@ -53,7 +53,7 @@
 
 	<RelativeLayout
 	    android:layout_width="match_parent"
-	    android:layout_height="32dp" >
+	    android:layout_height="wrap_content" >
 
 	    <Button
 	        android:id="@+id/scan"
@@ -68,7 +68,7 @@
 	</RelativeLayout>
 
 	<ListView
-	android:layout_marginTop="8dp"
+	android:layout_marginTop="20dp"
     android:id="@+id/listview"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content" /> 

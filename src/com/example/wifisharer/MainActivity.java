@@ -19,11 +19,13 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -310,7 +312,10 @@ public class MainActivity extends Activity {
 					int request = dataInputStream.readInt();
 					if(request==10)
 					{
-						dataOutputStream.writeUTF("Kishor");
+						SharedPreferences mPrefs;
+		       		    mPrefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+		       		    String Nick = mPrefs.getString("Nick", "");
+						dataOutputStream.writeUTF(Nick);
 						socket.close();
 						dataInputStream.close();
 						dataOutputStream.close();

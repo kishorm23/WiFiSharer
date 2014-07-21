@@ -34,22 +34,23 @@ public final class R {
         public static final int ic_provider=0x7f020004;
     }
     public static final class id {
-        public static final int action_scan=0x7f0a0013;
-        public static final int action_settings=0x7f0a0014;
+        public static final int action_scan=0x7f0a0014;
+        public static final int action_settings=0x7f0a0015;
+        public static final int bnick=0x7f0a000c;
         public static final int button1=0x7f0a0007;
         public static final int button2=0x7f0a0003;
         public static final int editText1=0x7f0a0002;
         public static final int editText2=0x7f0a0006;
-        public static final int etEnd=0x7f0a000d;
-        public static final int etStart=0x7f0a000c;
+        public static final int etEnd=0x7f0a000e;
+        public static final int etStart=0x7f0a000d;
         public static final int etnick=0x7f0a000b;
-        public static final int firstLine=0x7f0a0012;
-        public static final int icon=0x7f0a0010;
+        public static final int firstLine=0x7f0a0013;
+        public static final int icon=0x7f0a0011;
         public static final int linearLayout1=0x7f0a0001;
-        public static final int listview=0x7f0a000f;
+        public static final int listview=0x7f0a0010;
         public static final int relativeLayout1=0x7f0a0004;
-        public static final int scan=0x7f0a000e;
-        public static final int secondLine=0x7f0a0011;
+        public static final int scan=0x7f0a000f;
+        public static final int secondLine=0x7f0a0012;
         public static final int textSwitchNc=0x7f0a000a;
         public static final int textSwitchWc=0x7f0a0009;
         public static final int textView1=0x7f0a0000;
